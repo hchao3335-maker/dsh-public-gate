@@ -6,7 +6,7 @@
 
 <p align="center">
   把 <b>DeepSeek Harness</b> 安全暴露到公网的认证网关<br>
-  账号密码 / TOTP / 邮箱验证码 · 暴破防护 · 硬化反向代理 · <b>dsh 自身永远只监听 127.0.0.1</b>
+  面向 <b>Linux 服务器 + dsh web 版</b> · 密码 / TOTP / 邮箱验证码 · 暴破防护 · <b>dsh 自身永远只监听 127.0.0.1</b>
 </p>
 
 <p align="center">
@@ -20,6 +20,7 @@
 </p>
 
 <p align="center">
+  <a href="#scope"><img src="assets/icons/target.svg" width="14" height="14" alt=""> 适用场景</a> ·
   <a href="#features"><img src="assets/icons/bolt.svg" width="14" height="14" alt=""> 特性</a> ·
   <a href="#sec-1"><img src="assets/icons/shield.svg" width="14" height="14" alt=""> 安全模型</a> ·
   <a href="#sec-2"><img src="assets/icons/key.svg" width="14" height="14" alt=""> 登录方式</a> ·
@@ -32,6 +33,22 @@
 > **本项目取代旧项目 [dsh-lan-gate](https://github.com/hchao3335-maker/dsh-lan-gate)**（局域网访问版，已停止维护）。
 
 > 关键点：**dsh 本身仍然只监听 `127.0.0.1`**。插件不会去改 dsh 的绑定地址（上游源码明确拒绝 `0.0.0.0`，因为 UI 可以在宿主机上执行代码）。公网上只开插件自己的 HTTPS 端口，认证通过后才转发到本机 dsh。网关挂了或配错了，公网上什么都访问不到——**fail closed**。
+
+---
+
+<a id="scope"></a>
+## <img src="assets/icons/target.svg" width="20" height="20" alt=""> 适用场景
+
+| 环境 | 结论 | 说明 |
+| --- | --- | --- |
+| **Linux 服务器 + dsh web 版** | ✅ **推荐** | 本文档的主路径。`dsh web` 默认只监听 loopback，服务器有独立公网 IP、没有个人数据 —— 正是本插件的设计场景 |
+| 云主机 / VPS（Debian / Ubuntu） | ✅ 推荐 | 记得放行端口：`ufw allow 8443/tcp` |
+| **桌面版（Windows / macOS Electron）** | ⚠️ **能用，但不推荐** | 桌面 profile 同样组合了 `dsh-web-app`，插件会正常激活，但暴露面是**整台电脑**：个人文件、已登录的浏览器会话、`browser-use` / `computer-use` 插件都在同一进程里。此外还要额外处理 git、openssl、系统防火墙放行和路由器端口映射 |
+| 局域网内手机 / 平板访问 | ❌ 不适用 | 这是公网网关；局域网内直接用隧道或内网方案，不需要暴露公网 |
+| 没有公网 IP 的机器 | ❌ 不适用 | 插件只负责认证与反向代理，**不做 NAT 穿透**；先解决可达性（端口映射 / Cloudflare Tunnel / Tailscale） |
+
+> 桌面版的详细取舍与替代方案见 [§9 已知限制](#sec-9)。
+> 一句话：**这套东西是给"Linux 服务器 + web 版"设计的**，桌面版能跑但风险与成本都高得多。
 
 ---
 
@@ -424,6 +441,7 @@ node test/client-selftest.mjs    #  7 项：浏览器 bundle 注册进 settings.
 - 上游认证（launch token → cookie）依赖 `ctx.connection.authenticatedUrl()`；dsh 大版本改动这个 API 时插件需要适配。
 - 没有内置 HTTP/2、OCSP、证书自动续期；证书续期后需重启 dsh。
 - 不代理 `/api` 以外的 WebSocket 升级请求（dsh 只用 `/api/remote.mux`）。
+- **面向 Linux 服务器 + dsh web 版设计**。桌面版（Electron）虽然同样组合了 `dsh-web-app`、插件能正常激活，但不推荐：桌面机上跑着 `browser-use` / `computer-use`、已登录的浏览器会话和个人文件，公网暴露面远大于一台 VPS；且还需自行处理 git、openssl、系统防火墙与路由器端口映射。远程使用桌面版，建议改用 Cloudflare Tunnel / Tailscale 这类隧道方案。
 
 ---
 
