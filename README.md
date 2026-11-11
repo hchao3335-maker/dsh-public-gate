@@ -20,13 +20,13 @@
 </p>
 
 <p align="center">
-  <a href="#features">✨ 特性</a> ·
-  <a href="#sec-1">🛡️ 安全模型</a> ·
-  <a href="#sec-2">🔐 登录方式</a> ·
-  <a href="#sec-3">🚀 安装</a> ·
-  <a href="#sec-5">🖥️ 设置页</a> ·
-  <a href="#sec-8">🧪 测试</a> ·
-  <a href="#contributing">🤝 贡献</a>
+  <a href="#features"><img src="assets/icons/bolt.svg" width="14" height="14" alt=""> 特性</a> ·
+  <a href="#sec-1"><img src="assets/icons/shield.svg" width="14" height="14" alt=""> 安全模型</a> ·
+  <a href="#sec-2"><img src="assets/icons/key.svg" width="14" height="14" alt=""> 登录方式</a> ·
+  <a href="#sec-3"><img src="assets/icons/download.svg" width="14" height="14" alt=""> 安装</a> ·
+  <a href="#sec-5"><img src="assets/icons/monitor.svg" width="14" height="14" alt=""> 设置页</a> ·
+  <a href="#sec-8"><img src="assets/icons/flask.svg" width="14" height="14" alt=""> 测试</a> ·
+  <a href="#contributing"><img src="assets/icons/users.svg" width="14" height="14" alt=""> 贡献</a>
 </p>
 
 > **本项目取代旧项目 [dsh-lan-gate](https://github.com/hchao3335-maker/dsh-lan-gate)**（局域网访问版，已停止维护）。
@@ -36,36 +36,31 @@
 ---
 
 <a id="features"></a>
-## ✨ 特性
+## <img src="assets/icons/bolt.svg" width="20" height="20" alt=""> 特性
 
 | | 能力 | 说明 |
 | :--: | --- | --- |
-| 🔒 | **dsh 不暴露** | 上游固定 `127.0.0.1`，公网只开网关端口；网关挂了/配错就什么都进不来 |
-| 🔐 | **四种登录组合** | 密码 / 密码 + TOTP / 仅邮箱验证码 / 密码 + 邮箱验证码，随时切换 |
-| 🧂 | **scrypt 口令** | 内存硬哈希 + 每账号随机盐 + 常量时间比较，拖库也难还原 |
-| 📧 | **邮箱验证码** | 6 位、10 分钟、一次性、5 次作废；同 IP 30 秒重发间隔 + 每小时配额 |
-| 🚫 | **抗暴破** | 递增延迟 + 分级锁定（1 分钟 / 15 分钟 / 24 小时）+ 全站熔断 |
-| 🍪 | **会话安全** | 256 位随机 ID、HttpOnly + Secure + SameSite=Strict、空闲/绝对双超时、服务端可吊销 |
-| 🧱 | **安全响应头** | CSP、HSTS、`X-Frame-Options: DENY`、`nosniff`、`no-referrer` |
-| 🖥️ | **设置面板** | dsh 设置页内改登录方式、密码、收件箱、有效期，一键发测试邮件 |
-| 📜 | **审计日志** | JSONL + syslog 双写，可直接接 fail2ban |
-| 📦 | **零依赖** | 只用 Node 内置模块，没有第三方包 |
+| <img src="assets/icons/shield.svg" width="18" height="18" alt=""> | **dsh 不暴露** | 上游固定 `127.0.0.1`，公网只开网关端口；网关挂了/配错就什么都进不来 |
+| <img src="assets/icons/key.svg" width="18" height="18" alt=""> | **四种登录组合** | 密码 / 密码 + TOTP / 仅邮箱验证码 / 密码 + 邮箱验证码，随时切换 |
+| <img src="assets/icons/hash.svg" width="18" height="18" alt=""> | **scrypt 口令** | 内存硬哈希 + 每账号随机盐 + 常量时间比较，拖库也难还原 |
+| <img src="assets/icons/mail.svg" width="18" height="18" alt=""> | **邮箱验证码** | 6 位、10 分钟、一次性、5 次作废；同 IP 30 秒重发间隔 + 每小时配额 |
+| <img src="assets/icons/ban.svg" width="18" height="18" alt=""> | **抗暴破** | 递增延迟 + 分级锁定（1 分钟 / 15 分钟 / 24 小时）+ 全站熔断 |
+| <img src="assets/icons/cookie.svg" width="18" height="18" alt=""> | **会话安全** | 256 位随机 ID、HttpOnly + Secure + SameSite=Strict、空闲/绝对双超时、服务端可吊销 |
+| <img src="assets/icons/code.svg" width="18" height="18" alt=""> | **安全响应头** | CSP、HSTS、`X-Frame-Options: DENY`、`nosniff`、`no-referrer` |
+| <img src="assets/icons/monitor.svg" width="18" height="18" alt=""> | **设置面板** | dsh 设置页内改登录方式、密码、收件箱、有效期，一键发测试邮件 |
+| <img src="assets/icons/scroll.svg" width="18" height="18" alt=""> | **审计日志** | JSONL + syslog 双写，可直接接 fail2ban |
+| <img src="assets/icons/package.svg" width="18" height="18" alt=""> | **零依赖** | 只用 Node 内置模块，没有第三方包 |
 
 ---
 
-```
-浏览器 ──HTTPS(8443)──> [dsh-public-gate] ──HTTP(127.0.0.1:3080)──> dsh web
-                          │
-                          ├─ 登录页 / 邮箱验证码 / TOTP（本身不经过 dsh）
-                          ├─ 会话 cookie（HttpOnly+Secure+SameSite=Strict）
-                          ├─ 暴破防护（递增延迟 / 分 IP 锁 / 全局熔断）
-                          └─ 审计日志（JSONL + syslog，可接 fail2ban）
-```
+<p align="center">
+  <img src="assets/architecture.svg" alt="架构：浏览器 → HTTPS → dsh-public-gate → loopback → dsh web" width="900">
+</p>
 
 ---
 
 <a id="sec-1"></a>
-## 🛡️ 1. 安全模型
+## <img src="assets/icons/shield.svg" width="20" height="20" alt=""> 1. 安全模型
 
 ### 防护了什么
 
@@ -96,7 +91,7 @@
 ---
 
 <a id="sec-2"></a>
-## 🔐 2. 登录方式（四种组合）
+## <img src="assets/icons/key.svg" width="20" height="20" alt=""> 2. 登录方式（四种组合）
 
 四种组合**代码里全都在**，用哪个只看配置：
 
@@ -123,7 +118,7 @@ node bin/gate-tool.mjs show        # 看 second factor 是 email / totp / none
 > `init` 生成的口令哈希会一直保留，切到「仅邮箱验证码」时它只是不参与校验，随时切回来即可。
 > 切到「密码 + 邮箱验证码」前必须先有密码，否则页面会拒绝并提示。
 <a id="sec-3"></a>
-## 🚀 3. 安装
+## <img src="assets/icons/download.svg" width="20" height="20" alt=""> 3. 安装
 
 ```bash
 # 1) 放到服务器上（任意目录）
@@ -168,7 +163,7 @@ public-gate: listening on https://0.0.0.0:8443 (login /__gate/login, factor emai
 ---
 
 <a id="sec-4"></a>
-## ⚙️ 4. 配置
+## <img src="assets/icons/sliders.svg" width="20" height="20" alt=""> 4. 配置
 
 配置优先级：内置默认值 < `$DSH_HOME/public-gate/config.json` < 插件行的 `config:`。**凭据只放 config.json（0600）**。
 
@@ -287,7 +282,7 @@ DSH_PUBLIC_GATE_DISABLE=1 screen -dmS dshweb dsh web
 ---
 
 <a id="sec-5"></a>
-## 🖥️ 5. 设置页（dsh 前端）
+## <img src="assets/icons/monitor.svg" width="20" height="20" alt=""> 5. 设置页（dsh 前端）
 
 插件在 dsh Web 界面里注册了一个 **Settings → 公网访问** 页面（`settings.section` 插槽，`lib/client.js`），不需要碰配置文件：
 
@@ -309,7 +304,7 @@ DSH_PUBLIC_GATE_DISABLE=1 screen -dmS dshweb dsh web
 > 设置页里的改动**立即生效**，不需要重启 dsh；只有 `set-email`/`set-password` 这类改凭据的操作才需要重启。
 
 <a id="sec-6"></a>
-## 📜 6. 审计与 fail2ban
+## <img src="assets/icons/scroll.svg" width="20" height="20" alt=""> 6. 审计与 fail2ban
 `audit.log` 每行一个 JSON：
 
 ```json
@@ -344,7 +339,7 @@ findtime = 600
 ---
 
 <a id="sec-7"></a>
-## 🔏 7. 换成真证书（强烈建议）
+## <img src="assets/icons/badge.svg" width="20" height="20" alt=""> 7. 换成真证书（强烈建议）
 
 自签名证书不能防主动 MITM。有域名后：
 
@@ -365,7 +360,7 @@ install -m 600 /etc/letsencrypt/live/dsh.example.com/privkey.pem \
 ---
 
 <a id="sec-8"></a>
-## 🧪 8. 测试
+## <img src="assets/icons/flask.svg" width="20" height="20" alt=""> 8. 测试
 
 ```bash
 node test/selftest.mjs           # 16 项：scrypt / TOTP RFC 向量 / 会话 / 限速 / CIDR / 配置
@@ -379,7 +374,7 @@ node test/client-selftest.mjs    #  7 项：浏览器 bundle 注册进 settings.
 ---
 
 <a id="sec-9"></a>
-## ⚠️ 9. 已知限制
+## <img src="assets/icons/warning.svg" width="20" height="20" alt=""> 9. 已知限制
 
 - 只支持单账号（一个 `username`）。多账号需要改 `security` 结构。
 - 网关是**进程内**插件：dsh 重启后网关随之重启，登录会话失效（需重新登录）。
@@ -390,7 +385,7 @@ node test/client-selftest.mjs    #  7 项：浏览器 bundle 注册进 settings.
 ---
 
 <a id="contributing"></a>
-## 🤝 贡献
+## <img src="assets/icons/users.svg" width="20" height="20" alt=""> 贡献
 
 欢迎 issue 和 PR。提交前请先在本地跑完四套测试：
 
@@ -400,7 +395,7 @@ for t in selftest integration email-integration client-selftest; do node test/$t
 
 CI 会在 Node 20 / 22 上跑同样的四套测试（合计 85 项检查）。
 
-## 📄 许可证
+## <img src="assets/icons/book.svg" width="20" height="20" alt=""> 许可证
 
 [MIT](LICENSE) © 2026 [xianyiliang](https://github.com/hchao3335-maker)
 
@@ -412,4 +407,4 @@ CI 会在 Node 20 / 22 上跑同样的四套测试（合计 85 项检查）。
   </a>
 </p>
 
-<p align="center"><sub>如果这个项目对你有用，点个 ⭐ 是最实在的支持</sub></p>
+<p align="center"><sub>如果这个项目对你有用，点个 <img src="assets/icons/star.svg" width="14" height="14" alt=""> 是最实在的支持</sub></p>

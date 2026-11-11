@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="dsh-public-gate architecture">
+  <title>architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a93a6" />
+    </marker>
+  </defs>
+  <style>
+    .box { fill: #f7f8fc; stroke: #ccd3e3; stroke-width: 1.5; }
+    .gate { fill: #eef2ff; stroke: #6c7cff; stroke-width: 1.8; }
+    .t { font: 600 16px ui-sans-serif, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #1f2430; }
+    .s { font: 400 12px ui-sans-serif, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #5b6478; }
+    .m { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #4d5566; }
+    .l { font: 400 12px ui-sans-serif, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; fill: #6b7488; }
+    .a { stroke: #8a93a6; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+  </style>
+
+  <!-- browser -->
+  <rect class="box" x="24" y="72" width="184" height="106" rx="14" />
+  <text class="t" x="116" y="112" text-anchor="middle">浏览器</text>
+  <text class="s" x="116" y="136" text-anchor="middle">电脑 · 手机 · 平板</text>
+  <text class="m" x="116" y="156" text-anchor="middle">https://…:8443</text>
+
+  <!-- arrow 1 -->
+  <line class="a" x1="216" y1="125" x2="292" y2="125" />
+  <text class="l" x="254" y="112" text-anchor="middle">HTTPS</text>
+  <text class="m" x="254" y="146" text-anchor="middle">TLS 1.2+</text>
+
+  <!-- gate -->
+  <rect class="gate" x="300" y="44" width="300" height="162" rx="14" />
+  <text class="t" x="450" y="82" text-anchor="middle">dsh-public-gate</text>
+  <text class="s" x="450" y="106" text-anchor="middle">认证网关 · 反向代理</text>
+  <text class="s" x="450" y="134" text-anchor="middle">登录校验 · 暴破锁定</text>
+  <text class="s" x="450" y="156" text-anchor="middle">会话 · 审计 · 限流</text>
+  <text class="m" x="450" y="182" text-anchor="middle">0.0.0.0:8443</text>
+
+  <!-- arrow 2 -->
+  <line class="a" x1="608" y1="125" x2="684" y2="125" />
+  <text class="l" x="646" y="112" text-anchor="middle">HTTP</text>
+  <text class="m" x="646" y="146" text-anchor="middle">loopback</text>
+
+  <!-- dsh -->
+  <rect class="box" x="688" y="72" width="188" height="106" rx="14" />
+  <text class="t" x="782" y="112" text-anchor="middle">dsh web</text>
+  <text class="s" x="782" y="136" text-anchor="middle">DeepSeek Harness</text>
+  <text class="m" x="782" y="156" text-anchor="middle">127.0.0.1:3080</text>
+
+
+</svg>
