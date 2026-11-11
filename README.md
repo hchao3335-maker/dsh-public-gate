@@ -13,7 +13,7 @@
   <a href="https://github.com/hchao3335-maker/dsh-public-gate/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/hchao3335-maker/dsh-public-gate/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-4f7cff.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A5%2020-339933?logo=node.js&amp;logoColor=white">
-  <img alt="DSH" src="https://img.shields.io/badge/DSH-0.2.x-7a5cff">
+  <img alt="dsh" src="https://img.shields.io/badge/dsh-0.2.2--rc.1-7a5cff">
   <img alt="dependencies" src="https://img.shields.io/badge/dependencies-0-brightgreen">
   <a href="https://github.com/hchao3335-maker/dsh-public-gate/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/hchao3335-maker/dsh-public-gate?style=social"></a>
   <a href="https://github.com/hchao3335-maker/dsh-public-gate/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/hchao3335-maker/dsh-public-gate"></a>
@@ -22,6 +22,7 @@
 <p align="center">
   <a href="#scope"><img src="assets/icons/target.svg" width="14" height="14" alt=""> 适用场景</a> ·
   <a href="#features"><img src="assets/icons/bolt.svg" width="14" height="14" alt=""> 特性</a> ·
+  <a href="#compat"><img src="assets/icons/check.svg" width="14" height="14" alt=""> 兼容性</a> ·
   <a href="#sec-1"><img src="assets/icons/shield.svg" width="14" height="14" alt=""> 安全模型</a> ·
   <a href="#sec-2"><img src="assets/icons/key.svg" width="14" height="14" alt=""> 登录方式</a> ·
   <a href="#sec-3"><img src="assets/icons/download.svg" width="14" height="14" alt=""> 安装</a> ·
@@ -79,6 +80,32 @@
 > 并且同一套配置同时覆盖局域网和公网。
 
 ---
+
+<a id="compat"></a>
+## <img src="assets/icons/check.svg" width="20" height="20" alt=""> 兼容性
+
+| 项 | 值 |
+| --- | --- |
+| **实测版本** | `@deepseek-ai/dsh` **0.2.2-rc.1**（Node 24） |
+| **声明支持** | **dsh 0.2.x** —— 按 0.2.2 的接口编写 |
+| 不兼容 | dsh **0.1.x**（浏览器令牌鉴权接口不同） |
+| 未验证 | dsh 0.3 及以上 |
+| 运行形态 | `dsh web`（web profile）；桌面版的 web profile 同样可用 |
+| Node | ≥ 20（实测 24） |
+
+插件依赖的 dsh 接口面 —— 大版本升级后重点核对这几处：
+
+| 接口 / 约定 | 用途 |
+| --- | --- |
+| `ctx.webServer.getOrigin()` | 取回环上游地址 |
+| `ctx.connection.authenticatedUrl()` | 用 launch token 换取上游会话 |
+| `/connect?token=…` / `/` 的 303 换 Cookie 流程 | 网关自动登录 dsh，客户端无感 |
+| 包声明 `dsh.bundle.patch` | 装完自动注册 profile 层 |
+| `settings.section` 插槽 + `window.__ModuleLoader__` | 设置页里的「公网访问」 |
+| `webserver/index-inject` | 注入 `ownsHost`，让前端按回环处理 |
+
+> 升级 dsh 后如果插件没加载、登录页 502、或设置页里没有「公网访问」：
+> 先看启动日志里的 `public-gate:` 行，再对照上表逐项确认。
 
 <a id="features"></a>
 ## <img src="assets/icons/bolt.svg" width="20" height="20" alt=""> 特性
