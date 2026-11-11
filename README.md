@@ -134,6 +134,9 @@ https://github.com/hchao3335-maker/dsh-public-gate
 dsh plugin --profile web add github:hchao3335-maker/dsh-public-gate
 ```
 
+> **暂时不能用「包名」安装**（例如只输入 `dsh-public-gate`）：本包**没有发布到 npm registry**，
+> 按名字装会 404。请用上面的 GitHub 地址或下面的本地目录方式。发布到 npm 后这一步才可用。
+
 因为 `package.json` 里声明了 `dsh.bundle.patch`，装完会**自动注册成 profile 层**，不需要手改 `cordis.patch.yml`。
 
 > **前置条件：机器上要有 `git`。** pnpm 解析 `github:` 依赖时要跑 `git ls-remote`，没有 git 会报
