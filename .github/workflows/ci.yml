@@ -34,3 +34,6 @@ jobs:
 
       - name: Unconfigured install stays inactive
         run: node test/install-selftest.mjs
+
+      - name: Hostile input matrix
+        run: node test/security-selftest.mjs

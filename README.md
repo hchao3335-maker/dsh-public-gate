@@ -455,11 +455,13 @@ install -m 600 /etc/letsencrypt/live/dsh.example.com/privkey.pem \
 ```bash
 node test/selftest.mjs           # 16 项：scrypt / TOTP RFC 向量 / 会话 / 限速 / CIDR / 配置
 node test/integration.mjs        # 21 项：TOTP 登录全流程 + 代理 + WS 隧道 + Set-Cookie 剥离 + 锁定
-node test/email-integration.mjs  # 41 项：邮箱验证码登录 + 设置页 admin API（含登录方式切换 / 改密）
+node test/email-integration.mjs  # 42 项：邮箱验证码登录 + 设置页 admin API（含登录方式切换 / 改密）
 node test/client-selftest.mjs    #  7 项：浏览器 bundle 注册进 settings.section
+node test/install-selftest.mjs   #  3 项：未配置时不拖垮 dsh、不监听端口
+node test/security-selftest.mjs  # 28 项：恶意输入矩阵（绝对 URL、路径穿越、伪造会话、开放重定向、WS 越权…）
 ```
 
-合计 **85 项**检查。integration 系列用假 dsh 上游 + 假 TLS SMTP 服务器跑完整链路，**不需要真的 dsh 或邮箱**。CI 在 Node 20 / 22 上跑同样四套。
+合计 **120 项**检查。integration 系列用假 dsh 上游 + 假 TLS SMTP 服务器跑完整链路，**不需要真的 dsh 或邮箱**。CI 在 Node 20 / 22 上跑全部六套。
 
 ---
 
