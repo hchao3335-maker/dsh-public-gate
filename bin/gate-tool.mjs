@@ -20,7 +20,7 @@ import { gatePaths, loadConfig } from '../lib/config.js'
 import { buildMessage } from '../lib/mailer.js'
 import { sendMail } from '../lib/smtp.js'
 import { generateTotpSecret, hashPassword, otpauthUrl } from '../lib/security.js'
-import { resolveTls } from '../lib/tls.js'
+import { clearGeneratedTls, resolveTls } from '../lib/tls.js'
 
 const ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#%^*-_=+?'
 
@@ -423,15 +423,8 @@ async function commandGenTls(args) {
         ? (config.tls?.subjectAltNames ?? [])
         : String(args.san).split(',').map((s) => s.trim()),
   }
-  // Remove existing material so resolveTls regenerates it.
-  const { unlinkSync } = await import('node:fs')
-  for (const file of [tls.certFile, tls.keyFile]) {
-    try {
-      unlinkSync(file)
-    } catch {
-      /* not present */
-    }
-  }
+  // Remove generated material (and its marker) so resolveTls issues a new pair.
+  clearGeneratedTls(tls)
   const result = await resolveTls(tls, config.host ?? '0.0.0.0')
   process.stdout.write(`certificate : ${tls.certFile} (${result.source})\n`)
   process.stdout.write(`SANs        : ${(result.subjectAltNames ?? tls.subjectAltNames).join(', ')}\n`)

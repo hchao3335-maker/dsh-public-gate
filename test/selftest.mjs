@@ -220,4 +220,56 @@ await test('config requires TOTP unless explicitly allowed', async () => {
   rmSync(home, { recursive: true, force: true })
 })
 
+/* ---------------- TLS material ---------------- */
+await test('generated SANs cover loopback and every local IPv4', async () => {
+  const tls = await import('../lib/tls.js')
+  const entries = tls.desiredSubjectAltNames([], '0.0.0.0')
+  assert.ok(entries.includes('IP:127.0.0.1'), 'loopback is covered')
+  for (const address of tls.localAddresses()) {
+    assert.ok(entries.includes(`IP:${address}`), `${address} is covered`)
+  }
+})
+
+await test('LAN addresses are limited to private IPv4 ranges', async () => {
+  const tls = await import('../lib/tls.js')
+  for (const address of tls.lanAddresses()) {
+    const [a, b] = address.split('.').map(Number)
+    const isPrivate = a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31)
+    assert.ok(isPrivate, `${address} should be private`)
+  }
+})
+
+await test('certificate covers required SANs and reissues when they change', async () => {
+  const tls = await import('../lib/tls.js')
+  const { mkdtempSync, rmSync, unlinkSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = mkdtempSync(join(tmpdir(), 'gate-tls-'))
+  const conf = {
+    certFile: join(dir, 'cert.pem'),
+    keyFile: join(dir, 'key.pem'),
+    autoGenerate: true,
+    regenerateOnAddressChange: true,
+    subjectAltNames: [],
+    minVersion: 'TLSv1.2',
+  }
+  try {
+    const first = await tls.resolveTls(conf, '0.0.0.0')
+    assert.equal(first.generated, true)
+    const entries = tls.desiredSubjectAltNames([], '0.0.0.0')
+    assert.equal(tls.coversAltNames(first.cert, entries), true)
+    assert.equal(tls.coversAltNames(first.cert, ['IP:203.0.113.9']), false)
+
+    const again = await tls.resolveTls({ ...conf, subjectAltNames: ['IP:10.9.9.9'] }, '0.0.0.0')
+    assert.equal(again.regenerated, true)
+    assert.equal(tls.coversAltNames(again.cert, ['IP:10.9.9.9']), true)
+
+    unlinkSync(join(dir, 'self-signed.json'))
+    const kept = await tls.resolveTls({ ...conf, subjectAltNames: ['IP:10.9.9.8'] }, '0.0.0.0')
+    assert.equal(kept.regenerated, undefined)
+    assert.equal(kept.source, 'configured')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
 console.log(`\n${passed} checks passed`)

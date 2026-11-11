@@ -370,6 +370,7 @@ try {
   const statusPayload = JSON.parse(statusResponse.body)
   check('admin status reports the email configuration', statusResponse.status === 200 && statusPayload.email.to[0] === RECIPIENT)
   check('admin status reports recent audit events', Array.isArray(statusPayload.recent) && statusPayload.recent.length > 0)
+  check('admin status lists reachable access URLs', Array.isArray(statusPayload.access.urls) && statusPayload.access.urls.some((entry) => entry.url.startsWith('https://')))
 
   const forged = await request({
     method: 'POST',
