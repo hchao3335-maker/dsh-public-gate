@@ -1,13 +1,13 @@
 # dsh-public-gate
 
-把 **DeepSeek Harness Web UI** 安全地暴露到公网：账号密码 + TOTP 两步验证登录，前面套一层硬化过的 HTTPS 反向代理。
+把 **DeepSeek Harness Web UI** 安全地暴露到公网：账号密码 + **邮箱验证码 / TOTP** 二次验证，前面套一层硬化过的 HTTPS 反向代理，并自带 dsh 设置面板里的配置页。
 
 > 关键点：**dsh 本身仍然只监听 `127.0.0.1`**。插件不会去改 dsh 的绑定地址（上游源码明确拒绝 `0.0.0.0`，因为 UI 可以在宿主机上执行代码）。公网上只开插件自己的 HTTPS 端口，认证通过后才转发到本机 dsh。网关挂了或配错了，公网上什么都访问不到——**fail closed**。
 
 ```
 浏览器 ──HTTPS(8443)──> [dsh-public-gate] ──HTTP(127.0.0.1:3080)──> dsh web
                           │
-                          ├─ 登录页 / TOTP（本身不经过 dsh）
+                          ├─ 登录页 / 邮箱验证码 / TOTP（本身不经过 dsh）
                           ├─ 会话 cookie（HttpOnly+Secure+SameSite=Strict）
                           ├─ 暴破防护（递增延迟 / 分 IP 锁 / 全局熔断）
                           └─ 审计日志（JSONL + syslog，可接 fail2ban）
