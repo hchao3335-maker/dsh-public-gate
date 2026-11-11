@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+__pycache__/
+
+# Runtime state written by the gate tool — never commit credentials
+public-gate/
+config.json
+sessions.json
+*.pem
+*.key
+totp-qr.png

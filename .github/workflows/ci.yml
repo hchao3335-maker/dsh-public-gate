@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Verify every source file parses
+        run: for f in lib/*.js bin/*.mjs test/*.mjs; do node --check "$f"; done
+
+      - name: Unit tests (scrypt, TOTP RFC vectors, sessions, lockout, config)
+        run: node test/selftest.mjs
+
+      - name: TOTP login end-to-end
+        run: node test/integration.mjs
+
+      - name: Email-code login + admin API end-to-end
+        run: node test/email-integration.mjs
+
+      - name: Browser bundle smoke test (settings.section registration)
+        run: node test/client-selftest.mjs

@@ -1,0 +1,12 @@
+# dsh-public-gate — bundle patch.
+#
+# Inserting the row activates the gate for this profile. Credentials are NOT
+# stored here: they live in $DSH_HOME/public-gate/config.json (mode 0600),
+# created by:
+#
+#   node bin/gate-tool.mjs init
+#
+# Without credentials the plugin refuses to activate (fail closed).
+- insert:
+    - id: public-gate
+      name: dsh-public-gate

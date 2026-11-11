@@ -1,0 +1,54 @@
+{
+  "name": "dsh-public-gate",
+  "version": "1.0.0",
+  "description": "Public HTTPS gateway for the DeepSeek Harness web UI: username/password + TOTP or email-code login, brute-force protection, and a hardened reverse proxy to the loopback dsh listener.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "dsh-gate-tool": "bin/gate-tool.mjs"
+  },
+  "files": [
+    "lib/",
+    "bin/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "public-access",
+    "authentication",
+    "2fa",
+    "totp",
+    "email-otp",
+    "reverse-proxy"
+  ],
+  "author": "xianyiliang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hchao3335-maker/dsh-public-gate.git"
+  },
+  "homepage": "https://github.com/hchao3335-maker/dsh-public-gate#readme",
+  "bugs": {
+    "url": "https://github.com/hchao3335-maker/dsh-public-gate/issues"
+  }
+}
