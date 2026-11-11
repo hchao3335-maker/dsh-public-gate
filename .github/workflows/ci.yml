@@ -31,3 +31,6 @@ jobs:
 
       - name: Browser bundle smoke test (settings.section registration)
         run: node test/client-selftest.mjs
+
+      - name: Unconfigured install stays inactive
+        run: node test/install-selftest.mjs

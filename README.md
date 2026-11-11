@@ -120,35 +120,68 @@ node bin/gate-tool.mjs show        # 看 second factor 是 email / totp / none
 <a id="sec-3"></a>
 ## <img src="assets/icons/download.svg" width="20" height="20" alt=""> 3. 安装
 
+### 方式一：在 DSH 里直接装（推荐）
+
+打开 **设置 → 插件 → 添加插件**，粘贴仓库地址即可：
+
+```
+https://github.com/hchao3335-maker/dsh-public-gate
+```
+
+命令行等价：
+
 ```bash
-# 1) 放到服务器上（任意目录）
+dsh plugin --profile web add github:hchao3335-maker/dsh-public-gate
+```
+
+因为 `package.json` 里声明了 `dsh.bundle.patch`，装完会**自动注册成 profile 层**，不需要手改 `cordis.patch.yml`。
+
+接着生成凭据并重启：
+
+```bash
+cd ~/.dsh/profiles/web
+./node_modules/.bin/dsh-gate-tool init --user admin     # 打印一次口令 + TOTP 密钥
+dsh plugin --profile web list --depth 0 | grep public-gate   # 确认已安装
+# 重启 dsh web
+```
+
+> **没配置凭据时插件不会启动**，但也不会拖垮 dsh：日志会打印
+> `public-gate: not started — ...` 并保持端口关闭（fail closed）。配置完重启即生效。
+
+### 方式二：本地目录安装（离线 / 开发调试）
+
+```bash
+# 1) 把目录放到服务器
 scp -P <ssh-port> -r dsh-public-gate root@<server>:/opt/dsh-public-gate
 
-# 2) 装进 web profile（pnpm 建软链，之后改代码重启即生效）
+# 2) 装进 web profile（pnpm 建软链，改代码后重启即生效）
 dsh plugin --profile web add /opt/dsh-public-gate
 
-# 3) 生成凭据（会打印一次口令 + TOTP 密钥；仅密码/TOTP 模式用得到口令）
-cd /opt/dsh-public-gate
-node bin/gate-tool.mjs init --user admin
+# 3) 生成凭据
+cd /opt/dsh-public-gate && node bin/gate-tool.mjs init --user admin
 
-# 4) 启用插件：向 profile 的补丁层「插入」一行（不要改 cordis.yml）
-#    注意必须用 insert 形式；只写 "- id: ..." 会被当成覆盖已有项而报 not found
-cat >> /root/.dsh/profiles/web/cordis.patch.yml <<'YAML'
+# 4) 重启 dsh web
+```
 
+本地目录安装在**旧版 dsh** 上可能不会自动注册成 profile 层（提示 `declares no dsh.bundle`），
+这时需要手动在 `~/.dsh/profiles/web/cordis.patch.yml` 末尾追加：
+
+```yaml
 - insert:
     - id: public-gate
       name: dsh-public-gate
-YAML
-
-# 5) 放行端口
-ufw allow 8443/tcp
-
-# 6) 重启 dsh web
-screen -r dshweb        # Ctrl-C 停掉，再重新起：
-screen -dmS dshweb bash -c 'dsh web --no-open >> /root/.dsh/web-console.log 2>&1'
 ```
 
-启动后日志里会出现：
+> 必须用 `insert` 形式。只写 `- id: public-gate` 会被当成覆盖已有项，报 `patch: entry "public-gate" not found`。
+
+### 装完检查
+
+```bash
+ufw allow 8443/tcp          # 放行端口
+ss -lntp | grep 8443        # 网关在听
+```
+
+启动日志：
 
 ```
 public-gate: listening on https://0.0.0.0:8443 (login /__gate/login, factor email, allowlist 0)
