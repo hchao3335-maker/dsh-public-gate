@@ -136,6 +136,13 @@ dsh plugin --profile web add github:hchao3335-maker/dsh-public-gate
 
 因为 `package.json` 里声明了 `dsh.bundle.patch`，装完会**自动注册成 profile 层**，不需要手改 `cordis.patch.yml`。
 
+> **前置条件：机器上要有 `git`。** pnpm 解析 `github:` 依赖时要跑 `git ls-remote`，没有 git 会报
+> `ERR_PNPM_GIT_RESOLVE_FAILED ... git executable not found on PATH`。最小化系统先补上：
+>
+> ```bash
+> apt-get install -y git     # Debian / Ubuntu
+> ```
+
 接着生成凭据并重启：
 
 ```bash
