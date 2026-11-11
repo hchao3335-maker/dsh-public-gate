@@ -1,6 +1,6 @@
 # dsh-public-gate
 
-把 **DeepSeek Harness Web UI** 安全地暴露到公网：账号密码 + **邮箱验证码 / TOTP** 二次验证，前面套一层硬化过的 HTTPS 反向代理，并自带 dsh 设置面板里的配置页。
+把 **DeepSeek Harness Web UI** 安全地暴露到公网：**四种登录组合（密码 / 密码+TOTP / 仅邮箱验证码 / 密码+邮箱验证码）**，前面套一层硬化过的 HTTPS 反向代理，并自带 dsh 设置面板里的配置页。
 
 > 关键点：**dsh 本身仍然只监听 `127.0.0.1`**。插件不会去改 dsh 的绑定地址（上游源码明确拒绝 `0.0.0.0`，因为 UI 可以在宿主机上执行代码）。公网上只开插件自己的 HTTPS 端口，认证通过后才转发到本机 dsh。网关挂了或配错了，公网上什么都访问不到——**fail closed**。
 
@@ -45,7 +45,33 @@
 
 ---
 
-## 2. 安装
+## 2. 登录方式（四种组合）
+
+四种组合**代码里全都在**，用哪个只看配置：
+
+| 组合 | 登录页看到什么 | 配置 | 强度 |
+| --- | --- | --- | --- |
+| **密码 + 邮箱验证码**（推荐） | 用户名 + 密码 → 邮箱 6 位码 | `email.enabled=true` + `email.mode=password+code` | 最高 |
+| **仅邮箱验证码**（最省事） | 只填邮箱 6 位码 | `email.enabled=true` + `email.mode=code-only` | 中：邮箱被盗即失守 |
+| **密码 + TOTP** | 用户名 + 密码 → 认证器 6 位码 | `security.totp.secret` 非空且 `email.enabled=false` | 高 |
+| **仅密码** | 用户名 + 密码 | 两者都不配 + `security.allowPasswordOnly=true` | 最低 |
+
+优先级：`email.enabled=true` > 有 TOTP 密钥 > 仅密码。
+开了邮箱验证码后 TOTP 密钥会被**暂时忽略但保留**，关掉邮箱就自动恢复。
+
+切换方式二选一：
+
+```bash
+# 1) 命令行（改完重启 dsh）
+node bin/gate-tool.mjs set-email --mode password+code --user ... --pass ... --to ...
+node bin/gate-tool.mjs show        # 看 second factor 是 email / totp / none
+
+# 2) dsh 设置面板 → 公网访问 → 登录方式（即时生效，不用重启）
+```
+
+> `init` 生成的口令哈希会一直保留，切到「仅邮箱验证码」时它只是不参与校验，随时切回来即可。
+> 切到「密码 + 邮箱验证码」前必须先有密码，否则页面会拒绝并提示。
+## 3. 安装
 
 ```bash
 # 1) 放到服务器上（任意目录）
@@ -54,7 +80,7 @@ scp -P <ssh-port> -r dsh-public-gate root@<server>:/opt/dsh-public-gate
 # 2) 装进 web profile（pnpm 建软链，之后改代码重启即生效）
 dsh plugin --profile web add /opt/dsh-public-gate
 
-# 3) 生成凭据（会打印一次口令 + TOTP 密钥）
+# 3) 生成凭据（会打印一次口令 + TOTP 密钥；仅密码/TOTP 模式用得到口令）
 cd /opt/dsh-public-gate
 node bin/gate-tool.mjs init --user admin
 
@@ -89,7 +115,7 @@ public-gate: listening on https://0.0.0.0:8443 (login /__gate/login, factor emai
 
 ---
 
-## 3. 配置
+## 4. 配置
 
 配置优先级：内置默认值 < `$DSH_HOME/public-gate/config.json` < 插件行的 `config:`。**凭据只放 config.json（0600）**。
 
@@ -163,6 +189,7 @@ node bin/gate-tool.mjs set-password      # 换口令（会打印新口令）
 node bin/gate-tool.mjs set-password --password 'xxx' --force   # 短于 12 位时才需要 --force（弱口令，不推荐）
 node bin/gate-tool.mjs set-totp          # 重设 TOTP
 node bin/gate-tool.mjs set-session --absolute-days 7 --idle-days 7   # 登录有效期
+node bin/gate-tool.mjs set-email --mode password+code ...            # 切换登录方式（重启生效）
 node bin/gate-tool.mjs disable-totp --yes# 关闭 TOTP（不推荐）
 node bin/gate-tool.mjs gen-tls --san IP:1.2.3.4
 node bin/gate-tool.mjs show
@@ -206,14 +233,14 @@ DSH_PUBLIC_GATE_DISABLE=1 screen -dmS dshweb dsh web
 
 ---
 
-## 4. 设置页（dsh 前端）
+## 5. 设置页（dsh 前端）
 
 插件在 dsh Web 界面里注册了一个 **Settings → 公网访问** 页面（`settings.section` 插槽，`lib/client.js`），不需要碰配置文件：
 
 | 区域 | 内容 |
 | --- | --- |
 | 状态 | 监听地址、证书来源（自签名 / 已配置）、二次因子、登录方式、SMTP、配置文件路径 |
-| 可改 | 验证码收件箱（逗号分隔多地址）、登录有效期（天）、验证码有效期（分钟）、重发间隔（秒） |
+| 可改 | **登录方式（仅邮箱码 / 密码+邮箱码）**、**登录密码**、验证码收件箱（逗号分隔多地址）、登录有效期（天）、验证码有效期（分钟）、重发间隔（秒） |
 | 操作 | 保存（即时生效并落盘）、发送测试邮件、退出登录 |
 | 最近事件 | 最近 12 条审计记录（时间 / 事件 / IP / 原因） |
 
@@ -227,7 +254,7 @@ DSH_PUBLIC_GATE_DISABLE=1 screen -dmS dshweb dsh web
 
 > 设置页里的改动**立即生效**，不需要重启 dsh；只有 `set-email`/`set-password` 这类改凭据的操作才需要重启。
 
-## 5. 审计与 fail2ban
+## 6. 审计与 fail2ban
 `audit.log` 每行一个 JSON：
 
 ```json
@@ -261,7 +288,7 @@ findtime = 600
 
 ---
 
-## 6. 换成真证书（强烈建议）
+## 7. 换成真证书（强烈建议）
 
 自签名证书不能防主动 MITM。有域名后：
 
@@ -281,7 +308,7 @@ install -m 600 /etc/letsencrypt/live/dsh.example.com/privkey.pem \
 
 ---
 
-## 7. 测试
+## 8. 测试
 
 ```bash
 node test/selftest.mjs      # 16 项：scrypt / TOTP RFC 向量 / 会话 / 限速 / CIDR / 配置
@@ -292,7 +319,7 @@ integration 用一个假 dsh 上游跑完整链路，不需要真的 dsh。
 
 ---
 
-## 8. 已知限制
+## 9. 已知限制
 
 - 只支持单账号（一个 `username`）。多账号需要改 `security` 结构。
 - 网关是**进程内**插件：dsh 重启后网关随之重启，登录会话失效（需重新登录）。

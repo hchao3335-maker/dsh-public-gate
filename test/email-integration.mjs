@@ -422,6 +422,47 @@ try {
     body: JSON.stringify({ resendSeconds: 1 }),
   })
   check('admin settings rejects a cross-origin origin header', crossOrigin.status === 403, String(crossOrigin.status))
+
+  // 12. login mode switching and password change
+  const post = (payload) =>
+    request({
+      method: 'POST',
+      path: '/__gate/admin/settings',
+      headers: {
+        'content-type': 'application/json',
+        cookie: cookieHeader(jar),
+        origin: `https://127.0.0.1:${GATE_PORT}`,
+        'x-dsh-gate': 'settings',
+      },
+      body: JSON.stringify(payload),
+    })
+
+  check('fresh install reports no password', statusPayload.security.hasPassword === false)
+
+  const switchWithoutPassword = await post({ authMode: 'password+code' })
+  check('cannot switch to password mode without a password', switchWithoutPassword.status === 400, String(switchWithoutPassword.status))
+
+  const shortPassword = await post({ newPassword: 'short' })
+  check('rejects a password shorter than 12 characters', shortPassword.status === 400, String(shortPassword.status))
+
+  const setPassword = await post({ newPassword: 'correct-horse-battery' })
+  const setPasswordPayload = JSON.parse(setPassword.body)
+  check('accepts a strong password', setPassword.status === 200 && setPasswordPayload.changes.passwordChanged === true)
+  check('status now reports a password', setPasswordPayload.status.security.hasPassword === true)
+
+  const switchMode = await post({ authMode: 'password+code' })
+  const switchPayload = JSON.parse(switchMode.body)
+  check('switching to password+code succeeds', switchMode.status === 200 && switchPayload.status.email.mode === 'password+code')
+
+  const passwordLoginPage = await request({ path: '/__gate/login', headers: { accept: 'text/html' } })
+  check('login page now asks for a password', passwordLoginPage.body.includes('name="password"'))
+
+  const backToCodeOnly = await post({ authMode: 'code-only' })
+  check('switching back to code-only succeeds', backToCodeOnly.status === 200)
+
+  const persistedMode = JSON.parse(readFileSync(join(tempHome, 'public-gate', 'config.json'), 'utf8'))
+  check('login mode is persisted', persistedMode.email.mode === 'code-only')
+  check('password hash is persisted', typeof persistedMode.security.passwordHash === 'string')
 } finally {
   await gate?.stop()
   smtp?.close()
