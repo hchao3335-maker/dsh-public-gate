@@ -267,7 +267,7 @@ try {
   const loginPage = await request({ path: '/__gate/login', headers: { accept: 'text/html' } })
   mergeCookies(jar, loginPage)
   const csrf = csrfFrom(loginPage.body)
-  check('login page renders a send-code button', loginPage.status === 200 && loginPage.body.includes('发送验证码'))
+  check('login page renders a send-code form', loginPage.status === 200 && loginPage.body.includes('/__gate/send-code') && loginPage.body.includes('获取验证码'))
   check('login page has no password field in code-only mode', !loginPage.body.includes('name="password"'))
   check('login page carries a CSRF token', typeof csrf === 'string' && jar.dsh_gate_csrf !== undefined)
   check('login page also shows the code field', loginPage.body.includes('name="code"'))
