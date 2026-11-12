@@ -26,6 +26,7 @@
   <a href="#sec-1"><img src="assets/icons/shield.svg" width="14" height="14" alt=""> 安全模型</a> ·
   <a href="#sec-2"><img src="assets/icons/key.svg" width="14" height="14" alt=""> 登录方式</a> ·
   <a href="#sec-3"><img src="assets/icons/download.svg" width="14" height="14" alt=""> 安装</a> ·
+  <a href="#perf"><img src="assets/icons/speed.svg" width="14" height="14" alt=""> 慢链路</a> ·
   <a href="#sec-5"><img src="assets/icons/monitor.svg" width="14" height="14" alt=""> 设置页</a> ·
   <a href="#sec-8"><img src="assets/icons/flask.svg" width="14" height="14" alt=""> 测试</a> ·
   <a href="#contributing"><img src="assets/icons/users.svg" width="14" height="14" alt=""> 贡献</a>
@@ -398,6 +399,53 @@ DSH_PUBLIC_GATE_DISABLE=1 screen -dmS dshweb dsh web
 
 ---
 
+<a id="perf"></a>
+## <img src="assets/icons/speed.svg" width="20" height="20" alt=""> 慢链路优化（高延迟 / 低带宽）
+
+跨境链路（200ms+ RTT、几百 kbps）上，DSH 界面的问题是「首屏慢、操作卡、频繁重连」。
+网关做了三件**不需要配置**的事来压缩这条链路上的字节数和往返次数：
+
+| 优化 | 做法 | 实测效果 |
+| --- | --- | --- |
+| **内容寻址资源永久缓存** | `/assets/<name>-<hash>.js`、`/plugins/…?rev=<hash>` 这类 URL 随内容变化。dsh 对它们发 `cache-control: no-cache`，网关升级为 `public, max-age=31536000, immutable` | 第二次打开不再重新下载、也不再发协商请求，直接省掉每次 250ms 的往返 |
+| **gzip → Brotli 重编码** | dsh 只发 gzip（级别 1）。客户端声明支持 `br` 时，网关在流式转发里转成 Brotli | 主 bundle 970KB → gzip 332KB → **Brotli 280KB（再小 15.7%，编码 61ms）** |
+| **长连接 + WS 硬化** | keep-alive 75 秒（`headersTimeout` 80 秒）；WS 隧道两端 `TCP_NODELAY` + 30 秒 TCP 保活 | 轮询不再每次重新握手；小帧不被 Nagle 拖慢；空闲隧道不会被 NAT 悄悄掐断 |
+
+配置项（`lib/config.js` 的 `performance`，也可在 `config.json` 里覆盖）：
+
+```json
+"performance": {
+  "immutableAssets": true,
+  "assetMaxAgeSeconds": 31536000,
+  "brotliReencode": true,
+  "brotliQuality": 5
+}
+```
+
+- 关掉 `brotliReencode`：CPU 很弱的机器，或客户端前面已有一层做压缩的代理。
+- `brotliQuality` 取 1–11，默认 5 是速度/体积的平衡点（11 会明显吃 CPU 且收益很小）。
+- 只对 `application/json`、`application/javascript`、`text/*`、`image/svg` 且上游是 gzip 的 200 响应生效；`br;q=0`、HEAD、Range 请求一律不动。
+
+### 还需要 dsh 侧配合的两处
+
+网关管不到 dsh 内部实现，如果你的链路特别差，这两项值得一起调：
+
+1. **`compressionLevel`**：dsh 的 `WebServer.Config` 暴露了它（默认 1）。在 profile 的 `cordis.patch.yml` 里对 `@deepseek-ai/dsh-host-webserver` 设成 `6`，能再省约 11%（332KB → 297KB）。注意：改了之后网关的 Brotli 收益会小一点，因为上一步已经压得更紧了。
+2. **历史分页**：dsh 按消息条数分页（默认 50 条/页），不按字节，大会话单页可达 1MB。这是上游行为，网关只能传输，不能切片。
+
+### 排查断线
+
+WS 隧道现在会写审计日志：
+
+```bash
+tail -f /root/.dsh/public-gate/audit.log | grep ws.
+# {"event":"ws.open","ip":"…","path":"/api/remote.mux","at":"…"}
+# {"event":"ws.closed","ip":"…","duration_ms":18422,"by":"client","at":"…"}
+```
+
+`by` 说明是谁先断的：`client`（浏览器/网络）、`upstream`（dsh 主动关）、`client-error` / `upstream-error`（异常）。
+频繁出现短的 `duration_ms` + `by: client`，通常是链路抖动；`by: upstream` 则要看 dsh 自己的日志。
+
 <a id="sec-5"></a>
 ## <img src="assets/icons/monitor.svg" width="20" height="20" alt=""> 5. 设置页（dsh 前端）
 
@@ -480,15 +528,16 @@ install -m 600 /etc/letsencrypt/live/dsh.example.com/privkey.pem \
 ## <img src="assets/icons/flask.svg" width="20" height="20" alt=""> 8. 测试
 
 ```bash
-node test/selftest.mjs           # 16 项：scrypt / TOTP RFC 向量 / 会话 / 限速 / CIDR / 配置
-node test/integration.mjs        # 21 项：TOTP 登录全流程 + 代理 + WS 隧道 + Set-Cookie 剥离 + 锁定
-node test/email-integration.mjs  # 42 项：邮箱验证码登录 + 设置页 admin API（含登录方式切换 / 改密）
-node test/client-selftest.mjs    #  7 项：浏览器 bundle 注册进 settings.section
-node test/install-selftest.mjs   #  3 项：未配置时不拖垮 dsh、不监听端口
-node test/security-selftest.mjs  # 28 项：恶意输入矩阵（绝对 URL、路径穿越、伪造会话、开放重定向、WS 越权…）
+node test/selftest.mjs            # 19 项：scrypt / TOTP RFC 向量 / 会话 / 限速 / CIDR / 配置
+node test/integration.mjs         # 21 项：TOTP 登录全流程 + 代理 + WS 隧道 + Set-Cookie 剥离 + 锁定
+node test/email-integration.mjs   # 42 项：邮箱验证码登录 + 设置页 admin API（含登录方式切换 / 改密）
+node test/client-selftest.mjs     #  7 项：浏览器 bundle 注册进 settings.section
+node test/install-selftest.mjs    #  3 项：未配置时不拖垮 dsh、不监听端口
+node test/security-selftest.mjs   # 28 项：恶意输入矩阵（绝对 URL、路径穿越、伪造会话、开放重定向、WS 越权…）
+node test/performance-selftest.mjs # 18 项：immutable 缓存 / Brotli 重编码 / br;q=0 / HEAD / keep-alive 不变式
 ```
 
-合计 **120 项**检查。integration 系列用假 dsh 上游 + 假 TLS SMTP 服务器跑完整链路，**不需要真的 dsh 或邮箱**。CI 在 Node 20 / 22 上跑全部六套。
+合计 **138 项**检查。integration 系列用假 dsh 上游 + 假 TLS SMTP 服务器跑完整链路，**不需要真的 dsh 或邮箱**。CI 在 Node 20 / 22 上跑全部七套。
 
 ---
 

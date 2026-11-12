@@ -37,3 +37,6 @@ jobs:
 
       - name: Hostile input matrix
         run: node test/security-selftest.mjs
+
+      - name: Slow-link behaviour
+        run: node test/performance-selftest.mjs
